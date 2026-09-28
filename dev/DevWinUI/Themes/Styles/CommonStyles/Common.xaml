@@ -1,0 +1,20 @@
+﻿<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="using:DevWinUI">
+
+    <x:Double x:Key="SettingActionControlMinWidth">240</x:Double>
+
+    <ItemsPanelTemplate x:Key="ElementGroupHorizontalItemsPanel">
+        <StackPanel Orientation="Horizontal" />
+    </ItemsPanelTemplate>
+
+    <ItemsPanelTemplate x:Key="ElementGroupVerticalItemsPanel">
+        <StackPanel Orientation="Vertical" />
+    </ItemsPanelTemplate>
+
+    <TransitionCollection x:Key="SettingsCardsAnimations">
+        <EntranceThemeTransition FromVerticalOffset="50" />
+        <RepositionThemeTransition IsStaggeringEnabled="False" />
+    </TransitionCollection>
+
+</ResourceDictionary>

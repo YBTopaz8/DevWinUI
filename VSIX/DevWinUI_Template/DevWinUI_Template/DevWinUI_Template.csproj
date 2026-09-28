@@ -1,0 +1,85 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net472</TargetFramework>
+		<Nullable>enable</Nullable>
+		<LangVersion>latest</LangVersion>
+		<UseWPF>true</UseWPF>
+
+		<!-- VSIX settings -->
+		<VSSDKBuildToolsAutoSetup>true</VSSDKBuildToolsAutoSetup>
+		<VsixDeployOnDebug>true</VsixDeployOnDebug>
+		<GeneratePkgDefFile>true</GeneratePkgDefFile>
+		<DelaySign>False</DelaySign>
+
+		<AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
+
+		<SignAssembly>True</SignAssembly>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<Resource Include="Assets\header.png" />
+		<Resource Include="Assets\store.png" />
+		<Resource Include="Assets\WASDK.png" />
+		<Resource Include="Assets\GalleryApp.png" />
+		<Resource Include="Assets\check.png" />
+		<Content Include="Files\.editorconfig">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</Content>
+		<Content Include="Files\dotnet-release.yml">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</Content>
+		<Content Include="Files\settings.xamlstyler">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</Content>
+		<None Include="key.snk" />
+		<None Include="source.extension.vsixmanifest">
+			<SubType>Designer</SubType>
+			<Generator>VsixManifestGenerator</Generator>
+			<LastGenOutput>source.extension.cs</LastGenOutput>
+		</None>
+		<Content Include="Assets\AppIcon.ico">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</Content>
+		<Content Include="Assets\AppIcon.png">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</Content>
+		<Resource Include="Assets\AppTitleBar.png" />
+		<Content Include="Assets\Preview.png">
+			<IncludeInVSIX>true</IncludeInVSIX>
+		</Content>
+	</ItemGroup>
+
+
+	<ItemGroup>
+		<ProjectCapability Include="CreateVsixContainer" />
+	</ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Microsoft.VisualStudio.SDK" Version="17.14.40265" ExcludeAssets="runtime" />
+		<PackageReference Include="Microsoft.VisualStudio.TemplateWizardInterface" Version="17.10.40170" />
+		<PackageReference Include="Microsoft.VSSDK.BuildTools" Version="18.9.820" />
+		<PackageReference Include="WPF-UI" Version="4.3.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\WinUIApp-MVVM-NavigationView\WinUIApp-MVVM-NavigationView.csproj">
+			<Project>{0E3DECEA-492D-4FF6-B77E-4E68E6AFFA90}</Project>
+			<Name>WinUIApp-MVVM-NavigationView</Name>
+			<VSIXSubPath>ProjectTemplates</VSIXSubPath>
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+		</ProjectReference>
+		<ProjectReference Include="..\WinUIApp\WinUIApp.csproj">
+			<Project>{D9C038B7-6A62-4945-A030-4AC7597F53CA}</Project>
+			<Name>WinUIApp</Name>
+			<VSIXSubPath>ProjectTemplates</VSIXSubPath>
+			<ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+			<IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+		</ProjectReference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <Folder Include="Properties\" />
+	</ItemGroup>
+
+</Project>

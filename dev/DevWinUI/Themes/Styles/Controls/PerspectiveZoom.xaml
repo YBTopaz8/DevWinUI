@@ -1,0 +1,19 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="using:DevWinUI">
+
+    <Style BasedOn="{StaticResource DefaultPerspectiveZoomStyle}" TargetType="local:PerspectiveZoom" />
+
+    <Style x:Key="DefaultPerspectiveZoomStyle" TargetType="local:PerspectiveZoom">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:PerspectiveZoom">
+                    <local:PerspectiveHost x:Name="PART_Panel">
+                        <ContentPresenter Content="{TemplateBinding Content}" />
+                    </local:PerspectiveHost>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

@@ -1,0 +1,35 @@
+﻿<Page x:Class="DevWinUI_Template.PagesPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:local="clr-namespace:DevWinUI_Template"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+      d:DesignHeight="450"
+      d:DesignWidth="800"
+      mc:Ignorable="d">
+    <Page.Resources>
+        <local:BoolToOpacityConverter x:Key="BoolToOpacityConverter" />
+    </Page.Resources>
+    <Grid Margin="0,0,10,10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition />
+        </Grid.RowDefinitions>
+        <StackPanel Margin="0,0,0,10">
+            <TextBlock Foreground="{DynamicResource TextFillColorPrimaryBrush}" Style="{StaticResource TitleTextBlockStyle}" Text="Pages/Views" />
+            <TextBlock Foreground="{DynamicResource TextFillColorSecondaryBrush}" Style="{StaticResource BaseTextBlockStyle}" Text="Select the pages and views you want to include in your project" />
+        </StackPanel>
+        <ListView x:Name="CheckLV" Grid.Row="1" Background="Transparent" BorderThickness="0" ItemContainerStyle="{StaticResource NoTemplateListViewItemStyle}" PreviewMouseWheel="CheckLV_PreviewMouseWheel" SelectionChanged="CheckLV_SelectionChanged" SelectionMode="Multiple">
+            <ListView.ItemTemplate>
+                <DataTemplate DataType="model:CheckCardModel">
+                    <local:CheckCard Title="{Binding Title}" Margin="0,0,40,0" CornerRadius="{Binding CornerRadius}" Icon="{Binding Icon}" IsActive="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsSelected}" IsEnabled="{Binding IsEnabled}" Opacity="{Binding IsEnabled, Converter={StaticResource BoolToOpacityConverter}}" Subtitle="{Binding Subtitle}">
+                        <local:CheckCard.Content>
+                            <CheckBox IsChecked="{Binding RelativeSource={RelativeSource AncestorType=ListViewItem}, Path=IsSelected}" IsEnabled="{Binding IsEnabled}" />
+                        </local:CheckCard.Content>
+                    </local:CheckCard>
+                </DataTemplate>
+            </ListView.ItemTemplate>
+        </ListView>
+    </Grid>
+</Page>

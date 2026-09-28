@@ -1,0 +1,316 @@
+﻿# Contributing to DevWinUI
+
+Thank you for your interest in contributing to **DevWinUI**! 🎉  
+This guide will help you get started with setting up your development environment, following project conventions, and contributing code or samples effectively.
+
+---
+
+## 📺 Video Tutorials
+
+To get started quickly, watch these YouTube video tutorials:
+
+- [🎬 How to Add a New Control](https://youtu.be/jVGeuqi9zdA)
+- [🎬 How to Add a New Sample Page](https://youtu.be/yPClytGccBA)
+
+---
+
+## ⚙️ Build and Compile the Source
+
+> [!TIP]  
+> Please confirm that your development environment meets the requirements before compiling.
+
+### 1. 🖥️ Visual Studio 2026
+
+Ensure that your installation includes the appropriate workloads:
+
+- On the **Workloads** tab of the Visual Studio installer, check:
+  - **.NET Desktop Development**
+  - **WinUI Application Development**
+
+You can also import the configuration file (`.vsconfig` file) into a new or existing Visual Studio installation.
+
+Open the Visual Studio Installer and close Visual Studio. Most Installer operations require that the Visual Studio product itself is closed.
+
+On either the Installed tab or the Available tab, select More > Import configuration on the Visual Studio product card.
+
+Locate the .vsconfig file that you want to import, and then choose Review details.
+
+Verify that your selections are accurate, and then choose Modify.
+
+### 2. 🛠️ SDKs
+
+Ensure that you have following installed:
+
+- .NET **8.x**
+- .NET **9.x**
+- .Net **10.x**
+- Windows 10 SDK (10.0.19041)
+
+Windows 10 SDK 10.0.19041 does not exist in Visual Studio Installer, you need to download and install it manually from [here](https://learn.microsoft.com/en-us/windows/apps/windows-sdk/downloads)
+
+https://learn.microsoft.com/en-us/windows/apps/windows-sdk/downloads
+
+
+### 3. Installed the **XAML Styler** extension (Optional for Building, Required for Contribute):  
+  [XAML Styler for Visual Studio](https://marketplace.visualstudio.com/items?itemName=TeamXavalon.XAMLStyler2022)
+
+Make sure your environment matches these requirements to avoid issues during compilation.
+
+---
+
+## 📦 Repository Structure
+
+```bash
+DevWinUI/
+  dev/
+    DevWinUI/ # Full Library (Custom controls and Styles and Base Library)
+        Themes/ # Styles, templates, and resources
+    DevWinUI.Base/ # Core Library
+    DevWinUI.ContextMenu/ # Cross-platform context menu logic
+    DevWinUI.SourceGenerator/ # Source Generators 
+    DevWinUI.Gallery/ # Demo app for controls
+  VSIX/ # Source code for Visual Studio item templates
+  Output/ # Generated NuGet packages
+  Clean-obj-bin.bat # Helper script to clear build artifacts
+  Directory.Build.props # Central project configuration
+```
+
+---
+
+## 🖌 Code Style & Formatting
+
+- **All XAML files** must be formatted using [XAML Styler](https://marketplace.visualstudio.com/items?itemName=TeamXavalon.XAMLStyler2022)
+- The settings are defined in `settings.xamlstyler` located in the root directory.
+- Run **XAML Styler** on any new or updated XAML files before committing.
+
+---
+
+## 🧹 Cleaning Build Artifacts
+
+To fix certain Visual Studio issues when switching between `Debug` and `Release`:
+
+- After Switching, Close Visual Studio and Use the `Clean-obj-bin.bat` script to clean all `bin/` and `obj/` folders.
+
+---
+
+## 🚀 Debug and Release Configuration
+
+- **Debug** builds target only `.NET 10` for faster development.
+- **Release** builds target both `.NET 8`, `.Net 9` and `.NET 10`, and will automatically generate a NuGet package in `Output/`.
+
+---
+
+## 🧱 Project Details
+
+### 📁 DevWinUI.Base (Core Library)
+
+Contains:
+- Attached properties
+- Common
+- Helpers
+- Native methods
+- Services
+- Extensions
+- Managers
+
+> [!Note]
+> ❌ No XAML or theme files in this project.
+
+---
+
+### 📁 DevWinUI (Controls Library)
+
+Contains all XAML-related functionality:
+- Custom controls
+- Styles, brushes, converters
+- Win2D-based controls
+
+#### ➕ Adding a New Control
+
+1. Create the `.cs` control file in one of these folders:
+   - `Controls/`: General controls
+   - `Others/`: If no specific category
+   - A new folder (optional) if it includes multiple files
+
+2. Add the XAML style to:
+   - `Themes/Styles/Controls/`: General controls
+   - `Themes/Styles/Win2d/`: Win2D-based controls
+
+3. Create a Style with two parts:
+
+- Default style with key:
+
+```xml
+<Style x:Key="DefaultMyControlStyle"
+       TargetType="local:MyControl">
+    <!-- Setters, Templates, etc. -->
+</Style>
+```
+- Override as implicit style:
+```xml
+<Style BasedOn="{StaticResource DefaultMyControlStyle}"
+       TargetType="local:MyControl" />
+```
+- 🧱 Register the Default Style in Code
+In your control's constructor, set the `DefaultStyleKey`:
+
+```cs
+public MyControl()
+{
+    this.DefaultStyleKey = typeof(MyControl);
+}
+```
+
+> [!Warning]
+> Do not include code-behind `(x:Class)` in any XAML files intended for `Generic.xaml`. Use `ResourceDictionary` only.
+
+The files under `Themes/Styles/**` are automatically included in `Generic.xaml` by the build process.
+
+> [!CAUTION]
+> Do not manually edit, and Avoid placing the implicit style directly in `Generic.xaml` it is auto-generated by the `XAMLTools.MSBuild` package.
+
+> [!TIP]
+> These folders are **automatically included** in `Generic.xaml` via the `XAMLTools.MSBuild` NuGet package:
+> - Themes\Styles
+> - Controls\Ported
+
+### 📁 DevWinUI.ContextMenu
+- A .NET Standard class library that supports WinUI, WPF, WinForms, etc.
+- Uses a binary-only DLL (ContextMenuCustomHost.dll) due to licensing.
+- Do not edit or remove this file.
+
+### 📁 DevWinUI.Gallery (Sample App)
+#### ➕ Add a New Sample Page
+- Add a new .xaml page in:
+`dev/DevWinUI.Gallery/Views/Pages/`
+Use a subfolder based on category:
+
+```bash
+Features/
+LandingPages/
+Win2d/
+Common/
+```
+- Update the XAML:
+```xml
+<Page x:Class="DevWinUIGallery.Views.YourPage"
+      xmlns:dev="using:DevWinUI"
+      xmlns:local="using:DevWinUIGallery">
+```
+
+- Update the code-behind namespace:
+
+```cs
+namespace DevWinUIGallery.Views;
+```
+
+- Add a `<ControlExample>` block inside the page like this:
+
+```xml
+<ScrollViewer>
+  <StackPanel Margin="10"
+            dev:PanelAttach.ChildrenTransitions="Default"
+            Spacing="10">
+    <local:ControlExample DocPage="yourcontrol" HeaderText="YourControl">
+        <local:ControlExample.Xaml>
+            <x:String>
+                <dev:YourControl Property="Value" />
+            </x:String>
+        </local:ControlExample.Xaml>
+        <dev:YourControl />
+    </local:ControlExample>
+  </StackPanel>
+</ScrollViewer>
+```
+> [!TIP]
+> 📂 Browse other sample pages for examples.
+
+- Add the sample entry to `Assets/NavViewMenu/AppData.json`:
+```json
+{
+  "UniqueId": "DevWinUIGallery.Views.YourPage",
+  "Title": "YourControl",
+  "Subtitle": "YourControl",
+  "IsNew": true,
+  "ImagePath": "ms-appx:///Assets/Fluent/Viewbox.png"
+}
+```
+
+- Rebuild the solution.
+
+> [!IMPORTANT]  
+> 🧹 Clean up any auto-added ItemGroup Removed/Included/... lines in the .`csproj`.
+
+### 📌 Project Versioning
+Versions are controlled centrally in `Directory.Build.props` with properties like:
+
+```xml
+<!-- Major Version -->
+<LibraryMajorVersion>8</LibraryMajorVersion>
+
+<!-- Minor Version -->
+<DevWinUI_MinorVersion>4</DevWinUI_MinorVersion>
+<DevWinUI_Base_MinorVersion>4</DevWinUI_Base_MinorVersion>
+<DevWinUI_ContextMenu_MinorVersion>3</DevWinUI_ContextMenu_MinorVersion>
+<DevWinUI_Gallery_MinorVersion>4</DevWinUI_Gallery_MinorVersion>
+
+<!-- Patch Version -->
+<DevWinUI_PatchVersion>1</DevWinUI_PatchVersion>
+<DevWinUI_Base_PatchVersion>1</DevWinUI_Base_PatchVersion>
+<DevWinUI_ContextMenu_PatchVersion>0</DevWinUI_ContextMenu_PatchVersion>
+<DevWinUI_Gallery_PatchVersion>0</DevWinUI_Gallery_PatchVersion>
+
+<!-- -Preview -->
+<IsPreviewBuild>false</IsPreviewBuild>
+<PreviewLabel>-Preview</PreviewLabel>
+```
+It also defines:
+- NuGet metadata
+- Supported platforms
+- Shared configuration settings
+
+## 🔖 DevWinUI Namespace
+
+In **DevWinUI**, all code (regardless of folder depth or purpose) should use the root namespace:
+
+```csharp
+namespace DevWinUI;
+```
+In XAML, always declare:
+
+```xml
+xmlns:local="using:DevWinUI"
+```
+Avoid deeper namespaces like DevWinUI.Controls, DevWinUI.Blah, etc.
+
+## 🧼 Code Guidelines
+### ✂️ Partial Classes
+All control and helper classes must be marked as `partial` to support Native `AOT`.
+
+```cs
+public partial class MyControl : Control
+{
+    // ...
+}
+
+```
+### 🚫 Avoid Reflection
+Avoid using reflection-based logic, or any indirect type access. These break Native AOT compatibility.
+
+## ⚠ Notes
+- Do not include ItemGroup Removed/Included/... auto-generated lines in .csproj.
+- Do not touch `Themes/Generic.xaml` — it's generated.
+- Follow folder structure and naming conventions.
+- Format all XAML using the provided styler configuration.
+- Use Single `DevWinUI` namespace.
+- Follow Native AOT recommendations
+
+## 🤝 Ready to Contribute?
+- Fork the repository
+- Create a branch:
+- Make your changes
+- Commit with a descriptive message
+- Push and create a pull request
+
+## Thank you for helping make DevWinUI better! 🌟
+Questions? Open an issue or contact [@ghost1372](https://github.com/ghost1372).

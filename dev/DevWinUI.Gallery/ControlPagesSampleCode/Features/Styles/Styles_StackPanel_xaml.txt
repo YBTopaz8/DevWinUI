@@ -1,0 +1,7 @@
+﻿<StackPanel Height="80" Style="{ThemeResource StackPanelStyle}">
+
+</StackPanel>
+
+<StackPanel Height="80" Style="{ThemeResource CardPanelStyle}">
+
+</StackPanel>

@@ -1,0 +1,815 @@
+﻿using System.Buffers;
+using System.Diagnostics;
+
+namespace DevWinUI;
+
+public partial class WindowHelper
+{
+    internal static List<Win32Window> processWindowList = new List<Win32Window>();
+    internal static Process currentProcess;
+    internal static List<Win32Window> topLevelWindowList = new List<Win32Window>();
+
+    /// <summary>
+    /// Holds a collection of currently active windows in the application.
+    /// </summary>
+    public static ObservableCollection<TrackWindowItem> ActiveWindows { get; } = new();
+
+    /// <summary>
+    /// Tracks a specified window and removes it from the active list when closed.
+    /// </summary>
+    /// <param name="window">The window to be tracked for its closed event.</param>
+    public static void TrackWindow(Window window)
+    {
+        window.Closed -= RemoveWindow;
+        window.Closed += RemoveWindow;
+
+        void RemoveWindow(object sender, WindowEventArgs e)
+        {
+            var item = ActiveWindows.FirstOrDefault(x => x.Window.Equals(window));
+            if (item != null)
+            {
+                ActiveWindows.Remove(item);
+            }
+        }
+
+        ActiveWindows.AddIfNotExists(new TrackWindowItem
+        {
+            Window = window,
+            Dispatcher = new Dispatcher(window)
+        });
+    }
+
+    /// <summary>
+    /// Removes a specified window from the active windows list.
+    /// </summary>
+    /// <param name="window">The window to be removed from the active windows collection.</param>
+    public static void RemoveWindowFromTrack(Microsoft.UI.Xaml.Window window)
+    {
+        var item = ActiveWindows.FirstOrDefault(x => x.Window.Equals(window));
+        ActiveWindows.DeleteIfExists(item);
+    }
+
+    public static Microsoft.UI.Xaml.Window GetWindowForElement(UIElement element)
+    {
+        if (element.XamlRoot != null)
+        {
+            foreach (var item in ActiveWindows)
+            {
+                if (element.XamlRoot == item.Window.Content.XamlRoot)
+                {
+                    return item.Window;
+                }
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Switches the focus to a specified window if it is not null.
+    /// </summary>
+    /// <param name="window">The parameter represents a window that will be focused if it exists.</param>
+    public static void SwitchToThisWindow(Microsoft.UI.Xaml.Window window)
+    {
+        if (window != null)
+        {
+            SwitchToThisWindow(new HWND(WindowNative.GetWindowHandle(window)));
+        }
+    }
+
+    /// <summary>
+    /// Switches the focus to a specified window identified by its handle.
+    /// </summary>
+    /// <param name="hwnd">Identifies the window to which the focus will be switched.</param>
+    public static void SwitchToThisWindow(IntPtr hwnd)
+    {
+        PInvoke.SwitchToThisWindow(new HWND(hwnd), true);
+    }
+
+    /// <summary>
+    /// Reactivates a specified window.
+    /// </summary>
+    /// <param name="window">The window to be reactivated.</param>
+    public static void ReActivateWindow(Microsoft.UI.Xaml.Window window)
+    {
+        var hwnd = WindowNative.GetWindowHandle(window);
+        ReActivateWindow(hwnd);
+    }
+
+    /// <summary>
+    /// Reactivates a specified window.
+    /// before sending the messages.
+    /// </summary>
+    /// <param name="hwnd"></param>
+    public static void ReActivateWindow(IntPtr hwnd)
+    {
+        var activeWindow = PInvoke.GetActiveWindow();
+        var handle = new HWND(hwnd);
+        if (handle == activeWindow)
+        {
+            PInvoke.SendMessage(handle, (int)NativeValues.WindowMessage.WM_ACTIVATE, (int)NativeValues.WindowMessage.WA_INACTIVE, IntPtr.Zero);
+            PInvoke.SendMessage(handle, (int)NativeValues.WindowMessage.WM_ACTIVATE, (int)NativeValues.WindowMessage.WA_ACTIVE, IntPtr.Zero);
+        }
+        else
+        {
+            PInvoke.SendMessage(handle, (int)NativeValues.WindowMessage.WM_ACTIVATE, (int)NativeValues.WindowMessage.WA_ACTIVE, IntPtr.Zero);
+            PInvoke.SendMessage(handle, (int)NativeValues.WindowMessage.WM_ACTIVATE, (int)NativeValues.WindowMessage.WA_INACTIVE, IntPtr.Zero);
+        }
+    }
+
+    /// <summary>
+    /// Sets the corner radius of a specified window.
+    /// </summary>
+    /// <param name="window">Specifies the window whose corner radius will be modified.</param>
+    /// <param name="cornerPreference">Indicates the preferred style for the window corners.</param>
+    public static void SetWindowCornerRadius(Microsoft.UI.Xaml.Window window, NativeValues.DWM_WINDOW_CORNER_PREFERENCE cornerPreference)
+    {
+        SetWindowCornerRadius(WindowNative.GetWindowHandle(window), cornerPreference);
+    }
+
+    /// <summary>
+    /// Sets the corner radius of a specified window.
+    /// </summary>
+    /// <param name="hwnd">Identifies the window for which the corner radius will be set.</param>
+    /// <param name="cornerPreference">Specifies the desired corner style for the window.</param>
+    public static void SetWindowCornerRadius(IntPtr hwnd, NativeValues.DWM_WINDOW_CORNER_PREFERENCE cornerPreference)
+    {
+        if (OSVersionHelper.IsWindows11_22000_OrGreater)
+        {
+            unsafe
+            {
+                uint preference = (uint)cornerPreference;
+                PInvoke.DwmSetWindowAttribute(new HWND(hwnd), Windows.Win32.Graphics.Dwm.DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE, &preference, sizeof(uint));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Retrieves the corner radius preference for a specified window.
+    /// </summary>
+    /// <param name="window">The window from which the corner radius preference is obtained.</param>
+    /// <returns>Returns the corner radius preference as a NativeValues.DWM_WINDOW_CORNER_PREFERENCE value.</returns>
+    public static NativeValues.DWM_WINDOW_CORNER_PREFERENCE GetWindowCornerRadius(Microsoft.UI.Xaml.Window window)
+    {
+        var hwnd = WindowNative.GetWindowHandle(window);
+        return GetWindowCornerRadius(hwnd);
+    }
+
+    /// <summary>
+    /// Retrieves the corner radius preference of a specified window.
+    /// </summary>
+    /// <param name="hwnd">The handle of the window for which the corner radius preference is being retrieved.</param>
+    /// <returns>Returns the corner radius preference or a default value if the retrieval fails.</returns>
+    public static NativeValues.DWM_WINDOW_CORNER_PREFERENCE GetWindowCornerRadius(IntPtr hwnd)
+    {
+        uint cornerPreference = 0;
+        unsafe
+        {
+            HRESULT result = PInvoke.DwmGetWindowAttribute(new HWND(hwnd), Windows.Win32.Graphics.Dwm.DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE, &cornerPreference, (uint)sizeof(uint));
+            if (result.Succeeded)
+            {
+                return (NativeValues.DWM_WINDOW_CORNER_PREFERENCE)cornerPreference;
+            }
+        }
+
+        return NativeValues.DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_DEFAULT;
+    }
+
+    /// <summary>
+    /// Retrieves a read-only list of all top-level windows currently open in the system.
+    /// </summary>
+    /// <returns>Returns an IReadOnlyList of Win32Window objects representing the top-level windows.</returns>
+    public static IReadOnlyList<Win32Window> GetTopLevelWindows()
+    {
+        unsafe
+        {
+            topLevelWindowList?.Clear();
+            delegate* unmanaged[Stdcall]<HWND, LPARAM, BOOL> callback = &EnumWindowsCallback;
+
+            PInvoke.EnumWindows(callback, IntPtr.Zero);
+
+            return topLevelWindowList.AsReadOnly();
+
+            [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+            static BOOL EnumWindowsCallback(HWND hWnd, LPARAM lParam)
+            {
+                topLevelWindowList.Add(new Win32Window(hWnd));
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Retrieves a read-only list of windows associated with the current process. It enumerates all top-level windows
+    /// and filters them by the current process ID.
+    /// </summary>
+    /// <returns>Returns an IReadOnlyList of Win32Window objects representing the windows of the current process.</returns>
+    public static IReadOnlyList<Win32Window> GetProcessWindowList()
+    {
+        unsafe
+        {
+            processWindowList?.Clear();
+            currentProcess = Process.GetCurrentProcess();
+            delegate* unmanaged[Stdcall]<HWND, LPARAM, BOOL> callback = &EnumWindowsCallback;
+
+            PInvoke.EnumWindows(callback, IntPtr.Zero);
+
+            return processWindowList.AsReadOnly();
+
+            [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvStdcall) })]
+            static BOOL EnumWindowsCallback(HWND hWnd, LPARAM lParam)
+            {
+                var window = new Win32Window(hWnd);
+                if (window.ProcessId == currentProcess.Id)
+                {
+                    processWindowList.Add(window);
+                }
+                return true;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Retrieves the title text of a specified window.
+    /// </summary>
+    /// <param name="hwnd">Identifies the window from which to retrieve the title text.</param>
+    /// <returns>Returns the title text of the window as a string, or null if the operation fails.</returns>
+    public static string GetWindowText(IntPtr hwnd)
+    {
+        const int MAX_Length = 1024;
+        Span<char> buffer = stackalloc char[MAX_Length];
+        int result = PInvoke.GetWindowText(new HWND(hwnd), buffer);
+        return result > 0 ? buffer.Slice(0, (int)result).ToString() : string.Empty;
+    }
+
+    /// <summary>
+    /// Retrieves the class name of the window associated with the specified handle.
+    /// </summary>
+    /// <param name="hwnd">The handle of the window for which the class name is being retrieved.</param>
+    /// <returns>Returns the class name as a string or null if the operation fails.</returns>
+    public static string GetClassName(IntPtr hwnd)
+    {
+        const int MAX_Length = 256;
+        Span<char> buffer = stackalloc char[MAX_Length];
+        int result = PInvoke.GetClassName(new HWND(hwnd), buffer);
+        return result > 0 ? buffer.Slice(0, (int)result).ToString() : string.Empty;
+    }
+
+    /// <summary>
+    /// Retrieves the current AppWindow using finding MainWindow.
+    /// </summary>
+    /// <returns>An AppWindow instance representing the current window.</returns>
+    public static AppWindow GetCurrentAppWindow()
+    {
+        var tops = GetProcessWindowList();
+
+        var firstWinUI3 = tops.FirstOrDefault(w => w.ClassName == "WinUIDesktopWin32WindowClass" || w.ClassName == "Microsoft.UI.Windowing.Window");
+        var windowId = Win32Interop.GetWindowIdFromWindow(firstWinUI3.Handle);
+
+        return AppWindow.GetFromWindowId(windowId);
+    }
+
+
+    /// <summary>
+    /// Retrieves the current AppWindow using XamlRoot method.
+    /// </summary>
+    /// <returns>An AppWindow instance representing the current window.</returns>
+    public static AppWindow GetAppWindow(UIElement uIElement)
+    {
+        if (uIElement == null)
+        {
+            return null;
+        }
+
+        return AppWindow.GetFromWindowId(uIElement.XamlRoot.ContentIslandEnvironment.AppWindowId);
+    }
+
+    /// <summary>
+    /// Retrieves the current AppWindow using Microsoft.UI.Composition.Visual method.
+    /// </summary>
+    /// <returns>An AppWindow instance representing the current window.</returns>
+    public static AppWindow GetAppWindow2(UIElement uIElement)
+    {
+        if (uIElement == null)
+            return null;
+
+        Microsoft.UI.Composition.Visual visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(uIElement);
+        var compositor = visual.Compositor;
+        var islands = Microsoft.UI.Content.ContentIsland.FindAllForCompositor(compositor);
+        foreach (var island in islands)
+        {
+            if (island.Environment == uIElement.XamlRoot.ContentIslandEnvironment)
+            {
+                return AppWindow.GetFromWindowId(island.Environment.AppWindowId);
+            }
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// Retrieves window handle from UIElement using XamlRoot method
+    /// </summary>
+    /// <returns>Return an IntPtr</returns>
+    public static IntPtr GetWindowHandle(UIElement uIElement)
+    {
+        if (uIElement == null)
+        {
+            return IntPtr.Zero;
+        }
+
+        return Win32Interop.GetWindowFromWindowId(uIElement.XamlRoot.ContentIslandEnvironment.AppWindowId);
+    }
+
+    /// <summary>
+    /// Retrieves window handle from UIElement using Microsoft.UI.Composition.Visual method
+    /// </summary>
+    /// <returns>Return an IntPtr</returns>
+    public static IntPtr GetWindowHandle2(UIElement uIElement)
+    {
+        if (uIElement == null)
+            return IntPtr.Zero;
+
+        var visual = Microsoft.UI.Xaml.Hosting.ElementCompositionPreview.GetElementVisual(uIElement);
+        var compositor = visual.Compositor;
+        var islands = Microsoft.UI.Content.ContentIsland.FindAllForCompositor(compositor);
+
+        foreach (var island in islands)
+        {
+            if (island.Environment == uIElement.XamlRoot.ContentIslandEnvironment)
+            {
+                return Win32Interop.GetWindowFromWindowId(island.Environment.AppWindowId);
+            }
+        }
+
+        return IntPtr.Zero;
+    }
+    
+    /// <summary>
+    /// Retrieves the current screen size.
+    /// </summary>
+    /// <returns>A tuple containing the width and height of the screen.</returns>
+    public static (int, int) GetScreenSize()
+            => (PInvoke.GetSystemMetrics(Windows.Win32.UI.WindowsAndMessaging.SYSTEM_METRICS_INDEX.SM_CXSCREEN), PInvoke.GetSystemMetrics(Windows.Win32.UI.WindowsAndMessaging.SYSTEM_METRICS_INDEX.SM_CYSCREEN));
+
+    /// <summary>
+    /// Removes the border and title bar from a specified window.
+    /// </summary>
+    /// <param name="window">The parameter represents the window from which the border and title bar will be removed.</param>
+    public static void RemoveWindowBorderAndTitleBar(Microsoft.UI.Xaml.Window window) => RemoveWindowBorderAndTitleBar((nint)window.AppWindow.Id.Value);
+
+    /// <summary>
+    /// Removes the border and title bar from a specified window.
+    /// </summary>
+    /// <param name="hwnd"></param>
+    public static void RemoveWindowBorderAndTitleBar(IntPtr hwnd)
+    {
+        var style = PInvoke.GetWindowLong(new HWND(hwnd), Windows.Win32.UI.WindowsAndMessaging.WINDOW_LONG_PTR_INDEX.GWL_STYLE);
+
+        // Remove border, caption, and thick frame
+        style &= ~(int)NativeValues.WindowStyle.WS_BORDER & ~(int)NativeValues.WindowStyle.WS_CAPTION & ~(int)NativeValues.WindowStyle.WS_THICKFRAME;
+
+        PInvoke.SetWindowLong(new HWND(hwnd), Windows.Win32.UI.WindowsAndMessaging.WINDOW_LONG_PTR_INDEX.GWL_STYLE, style);
+
+        // Update the window's appearance
+        PInvoke.SetWindowPos(new HWND(hwnd), new HWND(IntPtr.Zero), 0, 0, 0, 0, Windows.Win32.UI.WindowsAndMessaging.SET_WINDOW_POS_FLAGS.SWP_NOMOVE | Windows.Win32.UI.WindowsAndMessaging.SET_WINDOW_POS_FLAGS.SWP_FRAMECHANGED | Windows.Win32.UI.WindowsAndMessaging.SET_WINDOW_POS_FLAGS.SWP_NOSIZE);
+    }
+
+    /// <summary>
+    /// Allows mouse clicks to pass through a transparent window.
+    /// </summary>
+    /// <param name="window">The window to be made click-through.</param>
+    public static void MakeTransparentWindowClickThrough(Microsoft.UI.Xaml.Window window) => MakeTransparentWindowClickThrough((nint)window.AppWindow.Id.Value);
+
+    /// <summary>
+    /// Allows mouse clicks to pass through a transparent window.
+    /// </summary>
+    /// <param name="hwnd"></param>
+    public static void MakeTransparentWindowClickThrough(IntPtr hwnd)
+    {
+        var currentStyle = PInvoke.GetWindowLong(new HWND(hwnd), Windows.Win32.UI.WindowsAndMessaging.WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE);
+        PInvoke.SetWindowLong(new HWND(hwnd), Windows.Win32.UI.WindowsAndMessaging.WINDOW_LONG_PTR_INDEX.GWL_EXSTYLE, currentStyle | (int)NativeValues.WindowStyle.WS_EX_LAYERED | (int)NativeValues.WindowStyle.WS_EX_TRANSPARENT);
+    }
+
+    /// <summary>
+    /// Resizes and centers a window based on a specified percentage of the available work area.
+    /// </summary>
+    /// <param name="window">The window to be resized and centered within the available work area.</param>
+    /// <param name="percentage">Indicates the size of the window as a percentage of the work area dimensions.</param>
+    /// <exception cref="ArgumentException">Thrown when the percentage is less than or equal to 0 or greater than 100.</exception>
+    public static void ResizeAndCenterWindowToPercentageOfWorkArea(Microsoft.UI.Xaml.Window window, double percentage)
+    {
+        // Validate the percentage
+        if (percentage <= 0 || percentage > 100)
+        {
+            throw new ArgumentException("Percentage must be between 1 and 100.", nameof(percentage));
+        }
+
+        Rect maxRect = DisplayMonitorHelper.GetMonitorInfo(window).RectWork;
+
+        // Calculate new dimensions based on the percentage.
+        double scaleFactor = percentage / 100.0;
+        int newWidth = (int)(maxRect.Width * scaleFactor);
+        int newHeight = (int)(maxRect.Height * scaleFactor);
+
+        // Calculate top-left coordinates to center the window inside maxRect.
+        int newX = (int)(maxRect.X + (maxRect.Width - newWidth) / 2.0);
+        int newY = (int)(maxRect.Y + (maxRect.Height - newHeight) / 2.0);
+
+        window.AppWindow.MoveAndResize(new RectInt32(newX, newY, newWidth, newHeight));
+    }
+
+    /// <summary>
+    /// Sets the owner of a child window to a specified parent window.
+    /// </summary>
+    /// <param name="parentWindow">The main window that will own the child window.</param>
+    /// <param name="childWindow">The window that will be owned by the specified parent.</param>
+    public static void SetWindowOwner(Microsoft.UI.Xaml.Window parentWindow, Microsoft.UI.Xaml.Window childWindow) => SetWindowOwner(WindowNative.GetWindowHandle(parentWindow), WindowNative.GetWindowHandle(childWindow));
+
+    /// <summary>
+    /// Sets the owner of a child window to a specified parent window.
+    /// </summary>
+    /// <param name="parentHwnd">The main window that will own the child window.</param>
+    /// <param name="childHwnd">The window that will be owned by the specified parent.</param>
+    public static void SetWindowOwner(IntPtr parentHwnd, IntPtr childHwnd)
+    {
+        NativeMethods.SetWindowLong(childHwnd, -8, parentHwnd);
+    }
+
+    /// <summary>
+    /// Locates a window by its class name.
+    /// </summary>
+    /// <param name="hwnd">Specifies the handle to the parent window to search within.</param>
+    /// <param name="lpszClass">Defines the class name of the window to be found.</param>
+    /// <returns>Returns the handle to the found window or zero if not found.</returns>
+    public static IntPtr FindWindow(IntPtr hwnd, string lpszClass)
+    {
+        return PInvoke.FindWindowEx(new HWND(hwnd), HWND.Null, lpszClass, null);
+    }
+
+    /// <summary>
+    /// Brings the specified window to the front and makes it the active window.
+    /// </summary>
+    /// <param name="window">The window to be activated and brought to the foreground.</param>
+    /// <returns>Returns true if the operation was successful, otherwise false.</returns>
+    public static bool SetForegroundWindow(Microsoft.UI.Xaml.Window window) => SetForegroundWindow(WindowNative.GetWindowHandle(window));
+
+    /// <summary>
+    /// Sets the specified window to the foreground, making it the active window. This can bring a window to the front
+    /// of other windows.
+    /// </summary>
+    /// <param name="hwnd"></param>
+    /// <returns>Returns true if the operation was successful, otherwise false.</returns>
+    public static bool SetForegroundWindow(IntPtr hwnd)
+    {
+        return PInvoke.SetForegroundWindow(new HWND(hwnd));
+    }
+
+    /// <summary>
+    /// Centers the specified window on the screen.
+    /// </summary>
+    /// <param name="window">The window to be centered on the screen.</param>
+    /// <returns>Returns true if the operation was successful, otherwise false.</returns>
+    public static bool CenterOnScreen(Microsoft.UI.Xaml.Window window) => CenterOnScreen(WindowNative.GetWindowHandle(window));
+
+    /// <summary>
+    /// Centers the specified window on the screen.
+    /// </summary>
+    /// <param name="window">The window to be centered on the screen.</param>
+    /// <param name="width">Defines the desired width of the window for centering purposes.</param>
+    /// <param name="height">Defines the desired height of the window for centering purposes.</param>
+    /// <returns>Returns a boolean indicating whether the window was successfully centered.</returns>
+    public static bool CenterOnScreen(Microsoft.UI.Xaml.Window window, double? width, double? height) => CenterOnScreen(WindowNative.GetWindowHandle(window), width, height);
+
+    /// <summary>
+    /// Centers the specified window on the screen.
+    /// </summary>
+    /// <param name="hwnd">The handle of the window to be centered on the screen.</param>
+    /// <returns>Returns true if the window was successfully centered.</returns>
+    public static bool CenterOnScreen(IntPtr hwnd) => CenterOnScreen(hwnd, null, null);
+
+    /// <summary>
+    /// Centers the specified window on the screen.
+    /// </summary>
+    /// <param name="hwnd">The handle of the window to be centered on the screen.</param>
+    /// <param name="width">Specifies the desired width of the window; if not provided, the current width is used.</param>
+    /// <param name="height">Specifies the desired height of the window; if not provided, the current height is used.</param>
+    /// <returns>Indicates whether the window was successfully repositioned.</returns>
+    public static bool CenterOnScreen(IntPtr hwnd, double? width, double? height)
+    {
+        var monitor = DisplayMonitorHelper.GetMonitorInfo(hwnd);
+        if (monitor is null)
+            return false;
+
+        var dpi = PInvoke.GetDpiForWindow(new HWND(hwnd));
+        if (!PInvoke.GetWindowRect(new HWND(hwnd), out RECT windowRect))
+            return false;
+
+        var scalingFactor = dpi / 96.0;
+        var w = width.HasValue ? (int)(width.Value * scalingFactor) : (windowRect.right - windowRect.left);
+        var h = height.HasValue ? (int)(height.Value * scalingFactor) : (windowRect.bottom - windowRect.top);
+
+        var cx = (monitor.RectMonitor.Left + monitor.RectMonitor.Right) / 2;
+        var cy = (monitor.RectMonitor.Bottom + monitor.RectMonitor.Top) / 2;
+        var left = (int)cx - (w / 2);
+        var top = (int)cy - (h / 2);
+
+        return PInvoke.SetWindowPos(new HWND(hwnd), new HWND(), left, top, w, h,
+            Windows.Win32.UI.WindowsAndMessaging.SET_WINDOW_POS_FLAGS.SWP_NOZORDER |
+            Windows.Win32.UI.WindowsAndMessaging.SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE);
+    }
+
+    /// <summary>
+    /// Try get all top-level visible window ids.
+    /// </summary>
+    /// <returns></returns>
+    public static unsafe IReadOnlyList<WindowId> TryGetAllWindowIds()
+    {
+        var charArray = ArrayPool<char>.Shared.Rent(256);
+
+        try
+        {
+            fixed (char* ptr = &charArray[0])
+            {
+                nint ptr2 = (nint)ptr;
+                HWND[]? hWndArray = NativeMethods.EnumThreadWindows((_hWnd, _) =>
+                {
+                    var length = PInvoke.GetClassName(_hWnd, (char*)ptr2, 255);
+
+                    if (length > 0)
+                    {
+                        var className = new string((char*)ptr2, 0, length);
+
+                        return className == "Microsoft.UI.Windowing.Window"
+                            || className == "WinUIDesktopWin32WindowClass";
+                    }
+
+                    return false;
+                }, 0);
+
+                return hWndArray?
+                    .Select(c => Win32Interop.GetWindowIdFromWindow(new nint(c.Value)))
+                    .ToArray() ?? Array.Empty<WindowId>();
+            }
+        }
+        finally
+        {
+            ArrayPool<char>.Shared.Return(charArray);
+        }
+    }
+
+    /// <summary>
+    /// Get All Windows Hwnd using CompositionTarget and ContentIsland
+    /// </summary>
+    /// <returns></returns>
+    public static IReadOnlyList<IntPtr> GetAllWindowHandles()
+    {
+        var compositor = CompositionTarget.GetCompositorForCurrentThread();
+        var islands = Microsoft.UI.Content.ContentIsland.FindAllForCompositor(compositor);
+
+        var result = new List<IntPtr>();
+        foreach (var island in islands)
+        {
+            result.Add(Win32Interop.GetWindowFromWindowId(island.Environment.AppWindowId));
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Get All Windows Id using CompositionTarget and ContentIsland
+    /// </summary>
+    /// <returns></returns>
+    public static IReadOnlyList<WindowId> GetAllWindowIds()
+    {
+        var compositor = CompositionTarget.GetCompositorForCurrentThread();
+        var islands = Microsoft.UI.Content.ContentIsland.FindAllForCompositor(compositor);
+
+        var result = new List<WindowId>();
+        foreach (var island in islands)
+        {
+            result.Add(island.Environment.AppWindowId);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Get All AppWindow using CompositionTarget and ContentIsland
+    /// </summary>
+    /// <returns></returns>
+    public static IReadOnlyList<AppWindow> GetAllAppWindows()
+    {
+        var compositor = CompositionTarget.GetCompositorForCurrentThread();
+        var islands = Microsoft.UI.Content.ContentIsland.FindAllForCompositor(compositor);
+
+        var result = new List<AppWindow>();
+        foreach (var island in islands)
+        {
+            var appWindow = AppWindow.GetFromWindowId(island.Environment.AppWindowId);
+            if (appWindow != null)
+                result.Add(appWindow);
+        }
+
+        return result;
+    }
+
+    public static bool HideWindow(Window window) => HideWindow(WindowNative.GetWindowHandle(window));
+    public static bool HideWindow(IntPtr hwnd) => Windows.Win32.PInvoke.ShowWindow(new HWND(hwnd), 0);
+    public static bool ShowWindow(Window window) => ShowWindow(WindowNative.GetWindowHandle(window));
+    public static bool ShowWindow(IntPtr hwnd) => Windows.Win32.PInvoke.ShowWindow(new HWND(hwnd), Windows.Win32.UI.WindowsAndMessaging.SHOW_WINDOW_CMD.SW_SHOW);
+    public static uint GetDpiForWindow(Window window) => GetDpiForWindow(WindowNative.GetWindowHandle(window));
+    public static uint GetDpiForWindow(IntPtr hwnd) => Windows.Win32.PInvoke.GetDpiForWindow(new HWND(hwnd));
+
+    public static Microsoft.UI.IconId GetWindowIcon(Window window) => GetWindowIcon(WindowNative.GetWindowHandle(window));
+    public static unsafe Microsoft.UI.IconId GetWindowIcon(IntPtr hwnd)
+    {
+        var lresult = Windows.Win32.PInvoke.SendMessage(new Windows.Win32.Foundation.HWND(hwnd), (uint)NativeValues.WindowMessage.WM_GETICON, 1, (nint)0);
+        if (lresult > 0)
+            return new Microsoft.UI.IconId((ulong)(nint)lresult);
+        else
+        {
+            lresult = Windows.Win32.PInvoke.SendMessage(new Windows.Win32.Foundation.HWND(hwnd), (uint)NativeValues.WindowMessage.WM_GETICON, 0, (nint)0);
+            if (lresult > 0)
+                return new Microsoft.UI.IconId((ulong)(nint)lresult);
+        }
+        var icon = Windows.Win32.PInvoke.LoadIcon(Windows.Win32.Foundation.HINSTANCE.Null, lpIconName: Windows.Win32.PInvoke.IDI_APPLICATION);
+        return new Microsoft.UI.IconId((ulong)icon.Value);
+    }
+
+    public static void SetRegion(Microsoft.UI.Xaml.Window window, ScreenRegion? region)
+    {
+        var converter = Microsoft.UI.Content.ContentCoordinateConverter.CreateForWindowId(window.AppWindow.Id);
+        var screenLoc = window.AppWindow.Position;
+        var rgn = region?.Create(converter, screenLoc, GetDpiForWindow(window) / 96d) ?? Windows.Win32.Graphics.Gdi.HRGN.Null;
+        try
+        {
+            PInvoke.SetWindowRgn(new Windows.Win32.Foundation.HWND(WindowNative.GetWindowHandle(window)), rgn, window.Visible);
+        }
+        finally
+        {
+            PInvoke.DeleteObject(rgn);
+        }
+    }
+
+    public static void SetWindowSize(Microsoft.UI.Xaml.Window window, double width, double height)
+    {
+        var scale = GetDpiForWindow(WindowNative.GetWindowHandle(window)) / 96f;
+        window.AppWindow.Resize(new Windows.Graphics.SizeInt32((int)(width * scale), (int)(height * scale)));
+    }
+    public static async Task ShakeWindowAsync(Window window, int intensity = 10, int times = 2, int delayMs = 50) => await ShakeWindowAsync(WindowNative.GetWindowHandle(window), intensity, times, delayMs);
+    public static async Task ShakeWindowAsync(IntPtr hwnd, int intensity = 10, int times = 2, int delayMs = 50)
+    {
+        for (int i = 0; i < times; i++)
+        {
+            for (int j = 0; j < 4; j++) // 4 steps per shake
+            {
+                int dx = (j % 2 == 0) ? intensity : -intensity;
+                int dy = (j < 2) ? 0 : 0;
+
+                RECT rect = new RECT();
+                PInvoke.GetWindowRect(new HWND(hwnd), out rect);
+
+                int newX = rect.left + dx;
+                int newY = rect.top + dy;
+
+                NativeMethods.SetWindowPos(hwnd, IntPtr.Zero, newX, newY, 0, 0, (uint)Windows.Win32.UI.WindowsAndMessaging.SET_WINDOW_POS_FLAGS.SWP_NOZORDER | (uint)Windows.Win32.UI.WindowsAndMessaging.SET_WINDOW_POS_FLAGS.SWP_NOACTIVATE | 0x0040 | 0x0001);
+
+                await Task.Delay(delayMs);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Position a flyout-style window at the bottom-right corner of the work area on the
+    /// monitor under the mouse cursor.
+    /// </summary>
+    public static void MoveWindowToBottomRight(Window window, int widthDip, int heightDip, int rightMarginDip = 0, int bottomMarginDip = 0)
+    {
+        MoveWindowToBottomRight(WindowNative.GetWindowHandle(window), widthDip, heightDip, rightMarginDip, bottomMarginDip);
+    }
+
+    /// <summary>
+    /// Position a flyout-style window at the bottom-right corner of the work area on the
+    /// monitor under the mouse cursor.
+    /// </summary>
+    public static void MoveWindowToBottomRight(IntPtr hwnd, int widthDip, int heightDip, int rightMarginDip = 0, int bottomMarginDip = 0)
+    {
+        if (!DisplayMonitorHelper.TryGetDisplayAreaAtCursor(out var displayArea) || displayArea is null)
+        {
+            return;
+        }
+
+        MoveWindowToBottomRight(hwnd, displayArea, widthDip, heightDip, rightMarginDip, bottomMarginDip);
+    }
+
+    /// <summary>
+    /// Position a flyout-style window at the bottom-right corner of the specified display
+    /// area's work area. Use this overload when the caller has already resolved the target
+    /// <see cref="DisplayArea"/> (e.g. the cursor monitor) so size and placement are computed
+    /// from the same source.
+    ///
+    /// Internally moves the window in two steps to avoid <c>WM_DPICHANGED</c> double-scaling
+    /// when the target monitor has a different DPI than the one the window was previously on:
+    /// first a 1×1 teleport into the target display, then the real position+size while the
+    /// window is already on that monitor (no DPI boundary crossing).
+    /// </summary>
+    public static void MoveWindowToBottomRight(Window window, DisplayArea displayArea, int widthDip, int heightDip, int rightMarginDip = 0, int bottomMarginDip = 0)
+    {
+        MoveWindowToBottomRight(WindowNative.GetWindowHandle(window), displayArea, widthDip, heightDip, rightMarginDip, bottomMarginDip);
+    }
+    /// <summary>
+    /// Position a flyout-style window at the bottom-right corner of the specified display
+    /// area's work area. Use this overload when the caller has already resolved the target
+    /// <see cref="DisplayArea"/> (e.g. the cursor monitor) so size and placement are computed
+    /// from the same source.
+    ///
+    /// Internally moves the window in two steps to avoid <c>WM_DPICHANGED</c> double-scaling
+    /// when the target monitor has a different DPI than the one the window was previously on:
+    /// first a 1×1 teleport into the target display, then the real position+size while the
+    /// window is already on that monitor (no DPI boundary crossing).
+    /// </summary>
+    public static void MoveWindowToBottomRight(IntPtr hwnd, DisplayArea displayArea, int widthDip, int heightDip, int rightMarginDip = 0, int bottomMarginDip = 0)
+    {
+        ArgumentNullException.ThrowIfNull(displayArea);
+
+        double dpiScale = GeneralHelper.GetDpiScale(displayArea);
+        var work = displayArea.WorkArea;
+
+        int w = GeneralHelper.ScaleToPhysicalPixels(widthDip, dpiScale);
+        int h = GeneralHelper.ScaleToPhysicalPixels(heightDip, dpiScale);
+        int marginRight = GeneralHelper.ScaleToPhysicalPixels(rightMarginDip, dpiScale);
+        int marginBottom = GeneralHelper.ScaleToPhysicalPixels(bottomMarginDip, dpiScale);
+
+        // Clamp size so the window never extends past the work area minus margins.
+        // Guards against the bottom/right edge spilling into the taskbar when rounding
+        // (Math.Ceiling above) would push it just past the boundary.
+        int maxW = Math.Max(0, work.Width - marginRight);
+        int maxH = Math.Max(0, work.Height - marginBottom);
+        w = Math.Min(w, maxW);
+        h = Math.Min(h, maxH);
+
+        // Absolute screen physical-pixel coordinates. WorkArea is in screen coordinates,
+        // so for non-primary monitors WorkArea.X/Y will be non-zero (and may be negative).
+        int x = work.X + work.Width - w - marginRight;
+        int y = work.Y + work.Height - h - marginBottom;
+
+        MoveAndResizeOnDisplay(hwnd, displayArea, new RectInt32(x, y, w, h));
+    }
+
+    /// <summary>
+    /// Two-step move that avoids WM_DPICHANGED double-scaling. First teleports a 1×1
+    /// window into the target display (which may trigger an auto-rescale, but on a 1×1
+    /// rect the effect is invisible). Then sets the real position+size while the window
+    /// is already on the target monitor — no DPI boundary crossing, so WinUI's auto
+    /// handler doesn't fire and overwrite our computed rect.
+    ///
+    /// Skips the teleport when the window is already on the target display, since there
+    /// is no boundary to cross.
+    /// </summary>
+    private static void MoveAndResizeOnDisplay(IntPtr hwnd, DisplayArea targetDisplay, RectInt32 finalRect)
+    {
+        var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
+        var appWindow = AppWindow.GetFromWindowId(windowId);
+
+        var currentDisplay = DisplayArea.GetFromWindowId(windowId, DisplayAreaFallback.Nearest);
+        bool needsTeleport = currentDisplay is null || currentDisplay.DisplayId.Value != targetDisplay.DisplayId.Value;
+
+        if (needsTeleport)
+        {
+            var work = targetDisplay.WorkArea;
+            appWindow.MoveAndResize(new RectInt32(work.X, work.Y, 1, 1));
+        }
+
+        appWindow.MoveAndResize(finalRect);
+    }
+
+    /// <summary>
+    /// Center a window within the specified display area's work area.
+    /// Uses a 1×1 teleport into the target display first to avoid WM_DPICHANGED
+    /// double-scaling when crossing monitors with different DPI.
+    /// </summary>
+    public static void CenterWindowOnDisplay(IntPtr hwnd, DisplayArea displayArea, int widthDip, int heightDip)
+    {
+        ArgumentNullException.ThrowIfNull(displayArea);
+
+        double dpiScale = GeneralHelper.GetDpiScale(displayArea);
+        var work = displayArea.WorkArea;
+
+        int w = Math.Min(GeneralHelper.ScaleToPhysicalPixels(widthDip, dpiScale), work.Width);
+        int h = Math.Min(GeneralHelper.ScaleToPhysicalPixels(heightDip, dpiScale), work.Height);
+
+        int x = work.X + ((work.Width - w) / 2);
+        int y = work.Y + ((work.Height - h) / 2);
+
+        MoveAndResizeOnDisplay(hwnd, displayArea, new RectInt32(x, y, w, h));
+    }
+
+    /// <summary>
+    /// Center a window within the specified display area's work area.
+    /// Uses a 1×1 teleport into the target display first to avoid WM_DPICHANGED
+    /// double-scaling when crossing monitors with different DPI.
+    /// </summary>
+    public static void CenterWindowOnDisplay(Window window, DisplayArea displayArea, int widthDip, int heightDip)
+    {
+        CenterWindowOnDisplay(WindowNative.GetWindowHandle(window), displayArea, widthDip, heightDip);
+    }
+}

@@ -1,0 +1,13 @@
+﻿<TextBlock Style="{StaticResource OobeSubtitleStyle}"
+            Text="OobeSubtitleStyle" />
+<TextBlock Style="{StaticResource SecondaryTextStyle}"
+            Text="SecondaryTextStyle" />
+<InfoBar Title="Title"
+            IsClosable="False"
+            IsOpen="True"
+            Message="Message"
+            Severity="Informational">
+    <InfoBar.Resources>
+        <ResourceDictionary Source="ms-appx:///DevWinUI/Themes/InfoBarInformationalColor.xaml" />
+    </InfoBar.Resources>
+</InfoBar>

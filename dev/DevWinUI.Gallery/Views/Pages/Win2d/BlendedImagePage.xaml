@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<Page x:Class="DevWinUIGallery.Views.BlendedImagePage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:dev="using:DevWinUI"
+      xmlns:local="using:DevWinUIGallery"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+      mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel Margin="10" dev:PanelAttach.ChildrenTransitions="Default" Spacing="10">
+            <local:ControlExample DocPage="controls/blendedImage" HeaderText="BlendedImage">
+                <local:ControlExample.Xaml>
+                    <x:String>
+                        &lt;dev:BlendedImage PrimaryImageSource="ms-appx:///Assets/Image1.png" SecondaryImageSource="ms-appx:///Assets/Image2.png" /&gt;
+                    </x:String>
+                </local:ControlExample.Xaml>
+                <local:ControlExample.Pane>
+                    <StackPanel Spacing="10">
+                        <Slider x:Name="SldBlur" Header="Blur Radius" Value="100" />
+                        <Slider x:Name="SldSplit" Header="Split Value" Value="50" />
+                    </StackPanel>
+                </local:ControlExample.Pane>
+                <dev:BlendedImage x:Name="BlendedImageSample" Width="500" Height="400" BlurRadius="{x:Bind SldBlur.Value, Mode=OneWay}" SplitValue="{x:Bind SldSplit.Value, Mode=OneWay}" />
+            </local:ControlExample>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

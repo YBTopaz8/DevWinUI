@@ -1,0 +1,61 @@
+<Solution>
+  <Configurations>
+    <Platform Name="ARM64" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/" Id="33905DB2-64FA-4677-9694-9064DC5A0372">
+    <File Path="Directory.Build.props" />
+  </Folder>
+  <Folder Name="/Solution Items/Configs/">
+    <File Path=".editorconfig" />
+    <File Path="tools/settings.xamlstyler" />
+  </Folder>
+  <Folder Name="/Solution Items/Docs/">
+    <File Path="docs/CONTRIBUTING.md" />
+    <File Path="docs/LICENSE.md" />
+    <File Path="docs/Migration.md" />
+    <File Path="docs/Policy" />
+    <File Path="docs/ThirdPartyNotices.txt" />
+    <File Path="README.md" />
+  </Folder>
+  <Folder Name="/Solution Items/Files/">
+    <File Path="Clean-obj-bin.bat" />
+    <File Path="LICENSE" />
+    <File Path="tools/AppData.Schema.json" />
+    <File Path="tools/Assets/DevWinUI.png" />
+    <File Path="tools/Assets/DevWinUI.svg" />
+  </Folder>
+  <Folder Name="/Solution Items/Git/">
+    <File Path=".gitattributes" />
+    <File Path=".gitignore" />
+  </Folder>
+  <Folder Name="/Solution Items/ISSUE_TEMPLATES/">
+    <File Path=".github/ISSUE_TEMPLATE/1-bug_report.yaml" />
+    <File Path=".github/ISSUE_TEMPLATE/2-feature_request.yaml" />
+    <File Path=".github/ISSUE_TEMPLATE/3-custom.md" />
+    <File Path=".github/ISSUE_TEMPLATE/config.yml" />
+  </Folder>
+  <Folder Name="/Solution Items/Workflows/">
+    <File Path=".github/workflows/publish-release.yml" />
+    <File Path=".github/workflows/vsix-release.yml" />
+  </Folder>
+  <Folder Name="/VSIX_Extension/" Id="55c3cdfc-dabe-4658-ada9-aa32a6371d9b">
+    <Project Path="VSIX/DevWinUI_Template/DevWinUI_Template/DevWinUI_Template.csproj" Id="84913ae7-791a-451d-b4c6-c2c93207d9ff" />
+  </Folder>
+  <Folder Name="/VSIX_Extension/Templates/" Id="9A3152D3-EAED-497A-BA1E-9792B5EA0DF5">
+    <Project Path="VSIX/DevWinUI_Template/WinUIApp-MVVM-NavigationView/WinUIApp-MVVM-NavigationView.csproj" Id="0e3decea-492d-4ff6-b77e-4e68e6affa90" />
+    <Project Path="VSIX/DevWinUI_Template/WinUIApp/WinUIApp.csproj" Id="d9c038b7-6a62-4945-a030-4ac7597f53ca" />
+  </Folder>
+  <Project Path="dev/DevWinUI.Base/DevWinUI.Base.csproj" Id="3b3c761a-d832-4514-81c5-9d1b3f4997b9" />
+  <Project Path="dev/DevWinUI.ContextMenu/DevWinUI.ContextMenu.csproj" Id="a95cc543-1958-4754-a79a-1f8bd1ca2dac" />
+  <Project Path="dev/DevWinUI.Gallery/DevWinUI.Gallery.csproj">
+    <Platform Solution="*|ARM64" Project="ARM64" />
+    <Platform Solution="*|x64" Project="x64" />
+    <Platform Solution="*|x86" Project="x86" />
+    <Deploy />
+  </Project>
+  <Project Path="dev/DevWinUI.Shader/DevWinUI.Shader.csproj" Id="68b5652b-853d-43d4-a055-b409e9d4091b" />
+  <Project Path="dev/DevWinUI.SourceGenerator/DevWinUI.SourceGenerator.csproj" Id="5d333619-af6e-4d59-80e3-7683db025f9c" />
+  <Project Path="dev/DevWinUI/DevWinUI.csproj" Id="19a8b4a4-dcde-4a2f-9874-6a0315609ee8" />
+</Solution>

@@ -1,0 +1,21 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="arm64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Templates/">
+    <Project Path="DevWinUI_Template/WinUIApp-MVVM-NavigationView/WinUIApp-MVVM-NavigationView.csproj" Id="0e3decea-492d-4ff6-b77e-4e68e6affa90">
+      <Platform Solution="*|arm64" Project="arm64" />
+      <Platform Solution="*|x86" Project="x86" />
+    </Project>
+    <Project Path="DevWinUI_Template/WinUIApp/WinUIApp.csproj" Id="d9c038b7-6a62-4945-a030-4ac7597f53ca">
+      <Platform Solution="*|arm64" Project="arm64" />
+      <Platform Solution="*|x86" Project="x86" />
+    </Project>
+  </Folder>
+  <Project Path="DevWinUI_Template/DevWinUI_Template/DevWinUI_Template.csproj" Id="84913ae7-791a-451d-b4c6-c2c93207d9ff">
+    <Platform Solution="*|arm64" Project="arm64" />
+    <Platform Solution="*|x86" Project="x86" />
+  </Project>
+</Solution>

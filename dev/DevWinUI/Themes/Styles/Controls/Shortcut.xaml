@@ -1,0 +1,111 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="using:DevWinUI">
+
+    <Style BasedOn="{StaticResource DefaultShortcutStyle}" TargetType="local:Shortcut" />
+
+    <Style x:Key="DefaultShortcutStyle" TargetType="local:Shortcut">
+        <Setter Property="WarningTitle" Value="Using a single key as a shortcut may interfere with regular typing or system behavior." />
+        <Setter Property="WarningToolTip" Value="It's recommended to use a modifier key (like Ctrl, Alt, or Win) along with it." />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:Shortcut">
+                    <Grid HorizontalAlignment="{TemplateBinding HorizontalAlignment}">
+                        <StackPanel Orientation="Horizontal">
+                            <Button x:Name="PART_OpenDialog" Padding="0" CornerRadius="{ThemeResource ControlCornerRadius}">
+                                <StackPanel Margin="12,6,12,6" Orientation="Horizontal" Spacing="16">
+                                    <ItemsControl VerticalAlignment="Center" IsEnabled="{TemplateBinding IsEnabled}" IsTabStop="False" ItemsSource="{TemplateBinding Keys}">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate>
+                                                <StackPanel Orientation="Horizontal" Spacing="4" />
+                                            </ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <local:KeyVisual VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" Content="{Binding}" IsTabStop="False" VisualType="Small" />
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+
+                                    <ContentControl VerticalContentAlignment="Center" Content="{TemplateBinding Icon}" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style BasedOn="{StaticResource DefaultShortcutPreview}" TargetType="local:ShortcutPreview" />
+
+    <Style x:Key="DefaultShortcutPreview" TargetType="local:ShortcutPreview">
+        <Setter Property="MinHeight" Value="220" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:ShortcutPreview">
+                    <Grid MinHeight="{TemplateBinding MinHeight}">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition MinHeight="110" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+
+                        <!--  Fix InfoBar Cut off Right Edges  -->
+                        <Border x:Name="PART_Border" />
+
+                        <TextBlock Grid.Row="0" Text="{TemplateBinding Title}" TextWrapping="Wrap" />
+
+                        <ItemsControl x:Name="KeysItemsControl" Grid.Row="1" Margin="{TemplateBinding KeysMargin}" HorizontalAlignment="Center" VerticalAlignment="Top" HorizontalContentAlignment="Center" ItemsSource="{TemplateBinding Keys}" Tag="{TemplateBinding IsError}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="8" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <local:KeyVisual AutomationProperties.AccessibilityView="Raw" Content="{Binding}" IsError="{Binding Tag, ElementName=KeysItemsControl}" IsTabStop="False" VisualType="Large" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <InfoBar Grid.Row="2" Margin="0,24,0,0" VerticalAlignment="Top" IsClosable="False" IsIconVisible="False" IsOpen="{TemplateBinding IsInfo}" IsTabStop="{TemplateBinding IsInfo}" Message="{TemplateBinding InfoTitle}" Severity="Informational" ToolTipService.ToolTip="{TemplateBinding InfoToolTip}" />
+                        <InfoBar Title="{TemplateBinding ErrorTitle}" Grid.Row="2" Margin="0,24,0,0" VerticalAlignment="Top" IsClosable="False" IsOpen="{TemplateBinding IsError}" IsTabStop="{TemplateBinding IsError}" Severity="Error" ToolTipService.ToolTip="{TemplateBinding ErrorToolTip}" />
+                        <InfoBar Title="{TemplateBinding WarningTitle}" Grid.Row="2" Margin="0,24,0,0" VerticalAlignment="Top" IsClosable="False" IsOpen="{TemplateBinding IsWarning}" IsTabStop="{TemplateBinding IsWarning}" Severity="Warning" ToolTipService.ToolTip="{TemplateBinding WarningToolTip}" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style BasedOn="{StaticResource DefaultShortcutWithTextLabel}" TargetType="local:ShortcutWithTextLabel" />
+
+    <Style x:Key="DefaultShortcutWithTextLabel" TargetType="local:ShortcutWithTextLabel">
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="local:ShortcutWithTextLabel">
+                    <Grid ColumnSpacing="8">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <ItemsControl VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" IsTabStop="False" ItemsSource="{TemplateBinding Keys}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal" Spacing="4" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <local:KeyVisual VerticalAlignment="Center" AutomationProperties.AccessibilityView="Raw" Content="{Binding}" IsTabStop="False" VisualType="SmallOutline" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <TextBlock Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center" Text="{TemplateBinding Text}" TextWrapping="Wrap" />
+                    </Grid>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+</ResourceDictionary>

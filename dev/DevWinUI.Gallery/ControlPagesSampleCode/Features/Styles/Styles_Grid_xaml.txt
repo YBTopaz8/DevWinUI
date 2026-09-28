@@ -1,0 +1,18 @@
+﻿<Grid Height="80" Style="{ThemeResource GridPanel}">
+
+</Grid>
+<Grid Height="80" Style="{ThemeResource GridCardPanel}">
+    
+</Grid>
+
+<Grid Height="80" Style="{ThemeResource CardGridStyle}">
+
+</Grid>
+
+<Grid Height="80" Style="{ThemeResource GlassAcrylicGridStyle}">
+
+</Grid>
+
+<Grid Height="80" Style="{ThemeResource HeroCardGridStyle}">
+
+</Grid>

@@ -1,0 +1,98 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>$(GalleryTargetFramework)</TargetFramework>
+    <RootNamespace>$(BaseNamespace)Gallery</RootNamespace>
+    <NavigationMappingsNamespace>$(RootNamespace)</NavigationMappingsNamespace>
+    <BreadcrumbMappingsNamespace>$(RootNamespace)</BreadcrumbMappingsNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <EnableMsixTooling>true</EnableMsixTooling>
+	  <TrimMode>partial</TrimMode>
+    <PublishAot>true</PublishAot>
+	  <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+	  <WindowsPackageType Condition="'$(GITHUB_ACTIONS)'=='true'">None</WindowsPackageType>
+	  <ApplicationIcon>Assets\AppIcon.ico</ApplicationIcon>
+	  <Version>$(LibraryMajorVersion).$(DevWinUI_Gallery_MinorVersion).$(DevWinUI_Gallery_PatchVersion)$(PreviewBuildSuffix)</Version>
+	  <NoWarn>NU1903;NU1902;CS8632;WMC1506;WMC1006;NU1900</NoWarn>
+	  <!--Remove git hash from assembly informational version in .NET >= 8, Example: false = 1.0.0, true = 1.0.0+xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx-->
+	  <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
+    <EnabledXamlOptionalChanges>DefaultStyleOptimizations,OptimizeApplyStyles,DeferContextFlyoutInit,IconNoGridOptimization</EnabledXamlOptionalChanges>
+  </PropertyGroup>
+  <ItemGroup>
+	  <Content Include="ControlPagesSampleCode\**\*">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	  <None Include="Assets\**\*">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Manifest Include="$(ApplicationManifest)" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.4.0" />
+    <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2526" />
+    <PackageReference Include="DevWinUI.SourceGenerator" Version="10.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.11" />
+    <PackageReference Include="Microsoft.Windows.CsWinRT" Version="2.3.1" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="CommunityToolkit.WinUI.Media" Version="8.3.260402-preview2" />
+    <PackageReference Include="nucs.JsonSettings" Version="2.3.2" />
+    <PackageReference Include="Nucs.JsonSettings.Autosave" Version="2.3.2" />
+    <PackageReference Include="ColorCode.Core" Version="2.0.15" />
+	  <PackageReference Include="Serilog" Version="4.4.0" />
+	  <PackageReference Include="Serilog.Sinks.Debug" Version="3.0.0" />
+	  <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+  </ItemGroup>
+
+  <!--
+    Defining the "Msix" ProjectCapability here allows the Single-project MSIX Packaging
+    Tools extension to be activated for this project even if the Windows App SDK Nuget
+    package has not yet been restored.
+  -->
+  <ItemGroup Condition="'$(DisableMsixProjectCapabilityAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <ProjectCapability Include="Msix" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\DevWinUI.Shader\DevWinUI.Shader.csproj" />
+    <ProjectReference Include="..\DevWinUI\DevWinUI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="Assets\NavViewMenu\AppData.json" Link="%(RecursiveDir)%(Filename)%(Extension)" Visible="false" />
+    <AdditionalFiles Include="@(Page)" />
+  </ItemGroup>
+  <ItemGroup>
+    <CompilerVisibleProperty Include="NavigationMappingsNamespace" />
+    <CompilerVisibleProperty Include="BreadcrumbMappingsNamespace" />
+  </ItemGroup>
+  <!--
+    Defining the "HasPackageAndPublishMenuAddedByProject" property here allows the Solution
+    Explorer "Package and Publish" context menu entry to be enabled for this project even if
+    the Windows App SDK Nuget package has not yet been restored.
+  -->
+  <PropertyGroup Condition="'$(DisableHasPackageAndPublishMenuAddedByProject)'!='true' and '$(EnableMsixTooling)'=='true'">
+    <HasPackageAndPublishMenu>true</HasPackageAndPublishMenu>
+  </PropertyGroup>
+
+  <!-- Publish Properties -->
+  <PropertyGroup>
+    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
+    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
+    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <GenerateTemporaryStoreCertificate>True</GenerateTemporaryStoreCertificate>
+    <GenerateAppInstallerFile>False</GenerateAppInstallerFile>
+    <AppxPackageSigningEnabled>True</AppxPackageSigningEnabled>
+    <PackageCertificateKeyFile>DevWinUI.Gallery_TemporaryKey.pfx</PackageCertificateKeyFile>
+    <AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
+    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+    <AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
+    <GenerateTestArtifacts>False</GenerateTestArtifacts>
+    <AppxBundle>Never</AppxBundle>
+    <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,155 @@
+﻿namespace DevWinUI;
+public partial class CalendarWithClock
+{
+    public CornerRadius ClockCornerRadius
+    {
+        get { return (CornerRadius)GetValue(ClockCornerRadiusProperty); }
+        set { SetValue(ClockCornerRadiusProperty, value); }
+    }
+
+    public static readonly DependencyProperty ClockCornerRadiusProperty =
+        DependencyProperty.Register(nameof(ClockCornerRadius), typeof(CornerRadius), typeof(CalendarWithClock), new PropertyMetadata(new CornerRadius(0, 4, 4, 0)));
+
+    public CornerRadius CalendarViewCornerRadius
+    {
+        get { return (CornerRadius)GetValue(CalendarViewCornerRadiusProperty); }
+        set { SetValue(CalendarViewCornerRadiusProperty, value); }
+    }
+
+    public static readonly DependencyProperty CalendarViewCornerRadiusProperty =
+        DependencyProperty.Register(nameof(CalendarViewCornerRadius), typeof(CornerRadius), typeof(CalendarWithClock), new PropertyMetadata(new CornerRadius(4, 0, 0, 4)));
+
+    public ClockMode ClockMode
+    {
+        get { return (ClockMode)GetValue(ClockModeProperty); }
+        set { SetValue(ClockModeProperty, value); }
+    }
+
+    public static readonly DependencyProperty ClockModeProperty =
+        DependencyProperty.Register(nameof(ClockMode), typeof(ClockMode), typeof(CalendarWithClock), new PropertyMetadata(ClockMode.AnalogClock, OnClockModeChanged));
+    private static void OnClockModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is CalendarWithClock control)
+        {
+            control.UpdateTemplate();
+        }
+    }
+    public TimeSpan? SelectedTime
+    {
+        get { return (TimeSpan?)GetValue(SelectedTimeProperty); }
+        set { SetValue(SelectedTimeProperty, value); }
+    }
+
+    public static readonly DependencyProperty SelectedTimeProperty =
+        DependencyProperty.Register(nameof(SelectedTime), typeof(TimeSpan?), typeof(CalendarWithClock), new PropertyMetadata(null, OnSelectedTimeChanged));
+
+    private static void OnSelectedTimeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is CalendarWithClock ctl && !ctl.isUpdating)
+        {
+            if (!ctl.SelectedTime.HasValue)
+            {
+                try
+                {
+                    ctl.isUpdating = true;
+                    if (ctl.timePicker != null)
+                    {
+                        ctl.timePicker.SelectedTime = null;
+                    }
+                }
+                finally
+                {
+                    ctl.isUpdating = false;
+                }
+                return;
+            }
+            ctl.UpdateDateTimeOffset();
+            ctl.UpdateSelectedDateTime();
+        }
+    }
+
+    public DateTimeOffset SelectedDateTime
+    {
+        get { return (DateTimeOffset)GetValue(SelectedDateTimeProperty); }
+        set { SetValue(SelectedDateTimeProperty, value); }
+    }
+    public static readonly DependencyProperty SelectedDateTimeProperty =
+        DependencyProperty.Register(nameof(SelectedDateTime), typeof(DateTimeOffset), typeof(CalendarWithClock), new PropertyMetadata(DateTimeOffset.Now, OnSelectedDateChanged));
+    private static void OnSelectedDateChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is CalendarWithClock ctl && !ctl.isUpdating)
+        {
+            ctl.UpdateSelectedDateTime();
+        }
+    }
+
+    public TimePickerDisplayMode TimePickerDisplayMode
+    {
+        get { return (TimePickerDisplayMode)GetValue(TimePickerDisplayModeProperty); }
+        set { SetValue(TimePickerDisplayModeProperty, value); }
+    }
+
+    public static readonly DependencyProperty TimePickerDisplayModeProperty =
+        DependencyProperty.Register(nameof(TimePickerDisplayMode), typeof(TimePickerDisplayMode), typeof(CalendarWithClock), new PropertyMetadata(TimePickerDisplayMode.Right, OnTimePickerDisplayModeChanged));
+
+    private static void OnTimePickerDisplayModeChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var ctl = (CalendarWithClock)d;
+        if (ctl != null)
+        {
+            ctl.UpdateGridRowsAndColumns((TimePickerDisplayMode)e.NewValue);
+        }
+    }
+
+    public bool ShowAccentBorderOnHeader
+    {
+        get { return (bool)GetValue(ShowAccentBorderOnHeaderProperty); }
+        set { SetValue(ShowAccentBorderOnHeaderProperty, value); }
+    }
+
+    public static readonly DependencyProperty ShowAccentBorderOnHeaderProperty =
+        DependencyProperty.Register(nameof(ShowAccentBorderOnHeader), typeof(bool), typeof(CalendarWithClock), new PropertyMetadata(true, OnShowAccentBorderOnHeaderChanged));
+
+    private static void OnShowAccentBorderOnHeaderChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        var ctl = (CalendarWithClock)d;
+        if (ctl != null)
+        {
+            ctl.OnShowAccentBorderOnHeader((bool)e.NewValue);
+        }
+    }
+
+    public string DateTimeFormat
+    {
+        get { return (string)GetValue(DateTimeFormatProperty); }
+        set { SetValue(DateTimeFormatProperty, value); }
+    }
+
+    public static readonly DependencyProperty DateTimeFormatProperty =
+        DependencyProperty.Register(nameof(DateTimeFormat), typeof(string), typeof(CalendarWithClock), new PropertyMetadata(default(string)));
+
+    public int MinuteIncrement
+    {
+        get { return (int)GetValue(MinuteIncrementProperty); }
+        set { SetValue(MinuteIncrementProperty, value); }
+    }
+
+    public static readonly DependencyProperty MinuteIncrementProperty =
+        DependencyProperty.Register(nameof(MinuteIncrement), typeof(int), typeof(CalendarWithClock), new PropertyMetadata(1, OnMinuteIncrementChanged));
+
+    private static void OnMinuteIncrementChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
+    {
+        if (d is CalendarWithClock ctl)
+        {
+            var value = (int)e.NewValue;
+            if (ctl.clock != null)
+            {
+                ctl.clock.MinuteIncrement = value;
+            }
+            if (ctl.timePicker != null)
+            {
+                ctl.timePicker.MinuteIncrement = value;
+            }
+        }
+    }
+}
