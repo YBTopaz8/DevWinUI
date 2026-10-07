@@ -399,3 +399,4 @@ FodyWeavers.xsd
 # output folder
 /output/
 /src/output/
+/dev/DevWinUI.ContextMenu/Output/net10.0-windows10.0.19041.0/win-x64
